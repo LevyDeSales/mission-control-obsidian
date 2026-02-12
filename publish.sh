@@ -3,7 +3,7 @@
 # Configuration
 EXPORT_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/obsidian-export"
 REPO_DIR="$HOME/code/mission-control-obsidian"
-MAIN_NOTE_NAME="mission-control-sistema-multi-agente-com-openclaw-(pt-br).html"
+MAIN_NOTE_NAME="mission-control-sistema-multi-agente-com-openclaw.html"
 
 # Navigate to repo
 cd "$REPO_DIR" || exit
@@ -21,6 +21,12 @@ if [ -f "$MAIN_NOTE_NAME" ]; then
     echo "🔧 Corrigindo metadados de redirecionamento..."
     sed -i '' "s/name=\"pathname\" content=\"$MAIN_NOTE_NAME\"/name=\"pathname\" content=\"index.html\"/g" index.html
     sed -i '' "s/property=\"og:url\" content=\"$MAIN_NOTE_NAME\"/property=\"og:url\" content=\"index.html\"/g" index.html
+
+    # Patch metadata.json to match the rename
+    if [ -f "site-lib/metadata.json" ]; then
+        echo "🔧 Atualizando metadata.json..."
+        sed -i '' "s/$MAIN_NOTE_NAME/index.html/g" site-lib/metadata.json
+    fi
 fi
 
 # Git operations
