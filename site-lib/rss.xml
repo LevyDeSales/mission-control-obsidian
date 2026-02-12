@@ -1,4 +1,155 @@
-<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Levy-obsidian-main]]></title><description><![CDATA[Obsidian digital garden]]></description><link>http://github.com/dylang/node-rss</link><image><url>site-lib/media/favicon.png</url><title>Levy-obsidian-main</title><link></link></image><generator>Webpage HTML Export plugin for Obsidian</generator><lastBuildDate>Thu, 12 Feb 2026 13:18:46 GMT</lastBuildDate><atom:link href="site-lib/rss.xml" rel="self" type="application/rss+xml"/><pubDate>Thu, 12 Feb 2026 13:18:44 GMT</pubDate><ttl>60</ttl><dc:creator></dc:creator><item><title><![CDATA[Mission Control - Sistema Multi-Agente com OpenClaw (PT-BR)]]></title><description><![CDATA[Esta é a história completa de como construí o Mission Control. Um sistema onde 10 agentes de IA trabalham juntos como uma equipe real. Se você quer replicar essa configuração, este guia cobre tudo.Se você já conhece o Clawdbot (agora OpenClaw), pode estar pensando "espera, não posso simplesmente rodar múltiplos Clawdbots?" Sim. É exatamente isso. Este guia mostra como.Eu comando, um chatbot de IA para suporte ao cliente. Uso IA constantemente. Mas toda ferramenta de IA que tentei tinha o mesmo problema. Sem continuidade.Toda conversa começava do zero. Contexto de ontem? Perdido. Aquela pesquisa que pedi semana passada? Enterrada em algum chat que nunca mais encontraria.Eu queria algo diferente:
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title><![CDATA[Levy-obsidian-main]]></title><description><![CDATA[Obsidian digital garden]]></description><link>http://github.com/dylang/node-rss</link><image><url>site-lib/media/favicon.png</url><title>Levy-obsidian-main</title><link/></image><generator>Webpage HTML Export plugin for Obsidian</generator><lastBuildDate>Thu, 12 Feb 2026 13:59:30 GMT</lastBuildDate><atom:link href="site-lib/rss.xml" rel="self" type="application/rss+xml"/><pubDate>Thu, 12 Feb 2026 13:59:28 GMT</pubDate><ttl>60</ttl><dc:creator/><item><title><![CDATA[Mission Control - Sistema Multi-Agente com OpenClaw]]></title><description><![CDATA[This is the full story of how I built Mission Control. A system where 10 AI agents work together like a real team. If you want to replicate this setup, this guide covers everything.If you're already familiar with Clawdbot (now OpenClaw), you might be thinking "wait, can't I just run multiple Clawdbots?" Yes. That's exactly what this is. This guide shows you how.I run @SiteGPT, an AI chatbot for customer support. I use AI constantly. But every AI tool I tried had the same problem. No continuity.Every conversation started fresh. Context from yesterday? Gone. That research I asked for last week? Lost in some chat thread I'd never find again.I wanted something different:
+Agents that remember what they're working on
+Multiple agents with different skills working together
+A shared workspace where all context lives
+The ability to assign tasks and track progress
+Basically, I wanted AI to work like a team, not like a search box.I was already using Clawdbot. It's an open-source AI agent framework that runs as a persistent daemon. It connects to Claude (or other models) and gives the AI access to tools like file system, shell commands, web browsing, and more.One Clawdbot instance gave me one AI assistant (Jarvis) connected to Telegram. Useful, but limited.Then I had a thought. What if I ran multiple Clawdbot sessions, each with its own personality and context?That's when I realized the architecture was already there. I just needed to orchestrate it.If you're going to build a multi-agent system, you need to understand how Clawdbot works under the hood. This is the foundation everything else builds on.Clawdbot (now called OpenClaw) is an AI agent framework with three main jobs:
+Connects AI models to the real world — File access, shell commands, web browsing, APIs
+Maintains persistent sessions — Conversation history that survives restarts
+Routes messages — Connect the AI to Telegram, Discord, Slack, or any channel
+It runs as a daemon (background service) on a server, listening for messages and responding.The Gateway is the core process:
+Runs 24/7 on your server
+Manages all active sessions
+Handles cron jobs (scheduled tasks)
+Routes messages between channels and sessions
+Provides a WebSocket API for control
+Start it with:clawdbot gateway start
+Configuration lives in a JSON file. You define:
+Which AI provider and model to use (Anthropic, OpenAI, etc.)
+Which channels to connect (Telegram, Discord, etc.)
+What tools agents can access
+Default system prompts and workspace paths
+A session is a persistent conversation with context.Every session has:
+A session key (unique identifier, like agent:main:main)
+Conversation history (stored as JSONL files on disk)
+A model (which AI to use)
+Tools (what the AI can access)
+Here's the important part. Sessions are independent. Each session has its own history, its own context, its own "memory" of past conversations.When you run multiple agents, you're really running multiple sessions. Each with their own identity.1User sends message to Telegram2 ↓3Gateway receives it4 ↓5Gateway routes to correct session (based on config)6 ↓7Session loads conversation history8 ↓9AI generates response (with full context)10 ↓11Response sent back through Telegram12 ↓13History updated and saved to diskSessions can be:
+Main sessions — Long-running, interactive (like chatting with Jarvis)
+Isolated sessions — One-shot, for cron jobs (wake up, do task, done)
+Clawdbot has a built-in cron system. You can schedule tasks:1clawdbot cron add \2 --name "morning-check" \3 --cron "30 7 * * *" \4 --message "Check today's calendar and send me a summary"When a cron fires:
+The Gateway creates or wakes a session
+Sends the message to the AI
+The AI responds (can use tools, send messages, etc.)
+The session can persist or terminate
+This is how agents "wake up" periodically without being always-on.Every Clawdbot instance has a workspace. That's a directory on disk where:
+Configuration files live
+Memory files are stored
+Scripts and tools are accessible
+The AI can read and write files
+The workspace is how agents persist information between sessions. They write to files. Those files survive restarts.1/home/usr/clawd/ ← Workspace root2├── AGENTS.md ← Instructions for agents3├── SOUL.md ← Agent personality4├── memory/5│ ├── WORKING.md ← Current task state6│ ├── 2026-01-31.md ← Daily notes7│ └── ...8├── scripts/ ← Utilities agents can run9└── config/ ← Credentials, settingsNow you understand the foundation. Here's how I built a team.Clawdbot sessions are independent. Each can have:
+Its own personality (via SOUL.md)
+Its own memory files
+Its own cron schedule
+Its own tools and access
+So each agent is just a Clawdbot session with a specialized configuration.Jarvis isn't special. He's a session with:
+Session key agent:main:main
+A SOUL.md that says "You are Jarvis, the squad lead..."
+Access to all tools
+A connection to my Telegram
+Shuri is another session with:
+Session key agent:product-analyst:main
+A SOUL.md that says "You are Shuri, the product analyst..."
+The same tools (file access, shell, browser)
+Her own heartbeat cron
+Ten agents = ten sessions. Each waking up on their own schedule. Each with their own context.Each agent has a unique session key:When I send a message to a specific session, only that agent receives it. Their histories are separate.Each agent has a cron job that wakes them every 15 minutes:1# Pepper wakes at :00, :15, :30, :452clawdbot cron add \3 --name "pepper-mission-control-check" \4 --cron "0,15,30,45 * * * *" \5 --session "isolated" \6 --message "You are Pepper, the Email Marketing Specialist. Check Mission Control for new tasks..."The schedule is staggered so agents don't all wake at once:Each cron creates an isolated session. It runs, does its job, and terminates. This keeps costs down.Here's where it gets interesting. How do agents communicate?Option 1: Direct session messaging1clawdbot sessions send --session "agent:seo-analyst:main" --message "Vision, can you review this?"Jarvis can send messages directly to Vision's session.Option 2: Shared database (Mission Control)All agents read and write to the same Convex database. When Fury posts a comment, everyone can see it.We use Option 2 primarily. It creates a shared record of all communication.Ten independent Clawdbot sessions can work. But without coordination, it's chaos. That's why I built Mission Control.Mission Control is the shared infrastructure that turns independent agents into a team.It provides:
+Shared task database — Everyone sees the same tasks
+Comment threads — Agents discuss work in one place
+Activity feed — Real-time visibility into what's happening
+Notification system — @mentions alert specific agents
+Document storage — Deliverables live in a shared repo
+Think of it as the "office" where all agents work. Each agent is still a separate Clawdbot session, but they're all looking at the same whiteboard.I chose Convex for the database because:
+Real-time — Changes propagate instantly; when Loki posts a comment, the UI updates live
+Serverless — No database to manage
+TypeScript-native — Type safety throughout
+Generous free tier — More than enough for this scale
+Six tables power everything:1agents: {2 name: string, // "Shuri"3 role: string, // "Product Analyst"4 status: "idle" | "active" | "blocked",5 currentTaskId: Id&lt;"tasks"&gt;,6 sessionKey: string, // "agent:product-analyst:main"7}89tasks: {10 title: string,11 description: string,12 status: "inbox" | "assigned" | "in_progress" | "review" | "done",13 assigneeIds: Id&lt;"agents"&gt;[],14}1516messages: {17 taskId: Id&lt;"tasks"&gt;,18 fromAgentId: Id&lt;"agents"&gt;,19 content: string, // The comment text20 attachments: Id&lt;"documents"&gt;[],21}2223activities: {24 type: "task_created" | "message_sent" | "document_created" | ...,25 agentId: Id&lt;"agents"&gt;,26 message: string,27}2829documents: {30 title: string,31 content: string, // Markdown32 type: "deliverable" | "research" | "protocol" | ...,33 taskId: Id&lt;"tasks"&gt;, // If attached to a task34}3536notifications: {37 mentionedAgentId: Id&lt;"agents"&gt;,38 content: string,39 delivered: boolean,40}Agents interact with this via Convex CLI commands:1# Post a comment2npx convex run messages:create '{"taskId": "...", "content": "Here's my research..."}'34# Create a document5npx convex run documents:create '{"title": "...", "content": "...", "type": "deliverable"}'67# Update task status8npx convex run tasks:update '{"id": "...", "status": "review"}'I built a React frontend that displays all this data:
+Activity Feed — Real-time stream of everything happening
+Task Board — Kanban columns (Inbox → Assigned → In Progress → Review → Done)
+Agent Cards — Status of each agent and what they're working on
+Document Panel — Read and create deliverables
+Detail View — Expand any task to see full context and comments
+The aesthetic is intentionally warm and editorial. Like a newspaper dashboard. I spend hours looking at this, so it should feel good.Each agent needs to know who they are. That's the SOUL file.1# SOUL.md — Who You Are23**Name:** Shuri4**Role:** Product Analyst56## Personality7Skeptical tester. Thorough bug hunter. Finds edge cases.8Think like a first-time user. Question everything.9Be specific. Don't just say "nice work."1011## What You're Good At12- Testing features from a user perspective13- Finding UX issues and edge cases14- Competitive analysis (how do others do this?)15- Screenshots and documentation1617## What You Care About18- User experience over technical elegance19- Catching problems before users do20- Evidence over assumptionsAn agent who's "good at everything" is mediocre at everything.But an agent who's specifically "the skeptical tester who finds edge cases" will actually find edge cases. The constraint focuses them.Each of our agents has a distinct voice:
+Loki is opinionated about word choice (pro-Oxford comma, anti-passive voice)
+Fury provides receipts for every claim (sources, confidence levels)
+Shuri questions assumptions and looks for what could break
+Quill thinks in hooks and engagement
+SOUL says who you are. AGENTS.md says how to operate.Every agent reads AGENTS.md on startup. It covers:
+Where files are stored
+How memory works
+What tools are available
+When to speak vs. stay quiet
+How to use Mission Control
+This is the operating manual. Without it, agents make inconsistent decisions about basic things.AI sessions start fresh by default. No memory of yesterday. This is a feature (prevents context bloat) but also a problem (agents forget what they're doing).Clawdbot stores conversation history in JSONL files. Agents can search their own past conversations.Current task state. Updated constantly.1# WORKING.md23## Current Task4Researching competitor pricing for comparison page56## Status7Gathered G2 reviews, need to verify credit calculations89## Next Steps101. Test competitor free tier myself112. Document the findings123. Post findings to task threadThis is the most important file. When an agent wakes up, they read WORKING.md first to remember what they were doing.Raw logs of what happened each day.1# 2026-01-3123## 09:15 UTC4- Posted research findings to comparison task5- Fury added competitive pricing data6- Moving to draft stage78## 14:30 UTC9- Reviewed Loki's first draft10- Suggested changes to credit trap sectionCurated important stuff. Lessons learned, key decisions, stable facts.
+If you want to remember something, write it to a file.
+"Mental notes" don't survive session restarts. Only files persist.When I tell an agent "remember that we decided X," they should update a file. Not just acknowledge and forget.Always-on agents burn API credits doing nothing. But always-off agents can't respond to work.Each agent wakes up every 15 minutes via cron job:1:00 Pepper wakes up2 → Checks for @mentions3 → Checks assigned tasks4 → Scans activity feed5 → Does work or reports HEARTBEAT_OK6 → Goes back to sleep78:02 Shuri wakes up9 → Same process1011:04 Friday wakes up12 → Same process1314...and so on
+Load context — Read WORKING.md. Read recent daily notes. Check session memory if needed.
+Check for urgent items — Am I @mentioned anywhere? Are there tasks assigned to me?
+Scan activity feed — Any discussions I should contribute to? Any decisions that affect my work?
+Take action or stand down — If there's work to do, do it. If nothing, report HEARTBEAT_OK.
+This file tells agents what to check:1# HEARTBEAT.md23## On Wake4- [ ] Check memory/WORKING.md for ongoing tasks5- [ ] If task in progress, resume it6- [ ] Search session memory if context unclear78## Periodic Checks9- [ ] Mission Control for @mentions10- [ ] Assigned tasks11- [ ] Activity feed for relevant discussionsAgents follow this checklist strictly.
+Every 5 minutes is too expensive. Agents wake too often with nothing to do.
+Every 30 minutes is too slow. Work sits waiting too long.
+Every 15 minutes is a good balance. Most work gets attention quickly without excessive costs.
+Type @Vision in a comment and Vision gets notified on his next heartbeat.Type @all and everyone gets notified.A daemon process (running via pm2) polls Convex every 2 seconds:1// Simplified2while (true) {3 const undelivered = await getUndeliveredNotifications();4 for (const notification of undelivered) {5 const sessionKey = AGENT_SESSIONS[notification.mentionedAgentId];6 try {7 await clawdbot.sessions.send(sessionKey, notification.content);8 await markDelivered(notification.id);9 } catch (e) {10 // Agent might be asleep, notification stays queued11 }12 }13 await sleep(2000);14}If an agent is asleep (no active session), delivery fails. The notification stays queued. Next time that agent's heartbeat fires and their session activates, the daemon successfully delivers.The problem: 5 agents discussing a task. Do you @mention all 5 every comment?The solution: Subscribe to threads.When you interact with a task, you're subscribed:
+Comment on a task → subscribed
+Get @mentioned → subscribed
+Get assigned to the task → subscribed
+Once subscribed, you get notified of ALL future comments. No @mention needed.This makes conversations flow naturally. Just like Slack or email threads.Every day at 11:30 PM IST, a cron fires that:
+Checks all agent sessions
+Gathers recent activity
+Compiles a summary
+Sends it to my Telegram
+1📊 DAILY STANDUP — Jan 30, 202623✅ COMPLETED TODAY4• Loki: Shopify blog post (2,100 words)5• Quill: 10 tweets drafted for approval6• Fury: Customer research for comparison pages78🔄 IN PROGRESS9• Vision: SEO strategy for integration pages10• Pepper: Trial onboarding sequence (3/5 emails)1112🚫 BLOCKED13• Wanda: Waiting for brand colors for infographic1415👀 NEEDS REVIEW16• Loki's Shopify blog post17• Pepper's trial email sequence1819📝 KEY DECISIONS20• Lead with pricing transparency in comparisons21• Deprioritized Zendesk comparison (low volume)I can't watch Mission Control constantly. The standup gives me a daily snapshot.It's also accountability. If an agent claims they're working but nothing shows in standups, something's wrong.Agent Descriptions:
+Jarvis — The coordinator. Handles direct requests, delegates, monitors progress. My primary interface.
+Shuri — Skeptical tester. Finds edge cases and UX issues. Tests competitors. Asks the questions others miss.
+Fury — Deep researcher. Reads G2 reviews for fun. Every claim comes with receipts.
+Vision — Thinks in keywords and search intent. Makes sure content can rank.
+Loki — Words are his craft. Pro-Oxford comma. Anti-passive voice. Every sentence earns its place.
+Quill — Thinks in hooks and threads. Build-in-public mindset.
+Wanda — Visual thinker. Infographics, comparison graphics, UI mockups.
+Pepper — Drip sequences and lifecycle emails. Every email earns its place or gets cut.
+Friday — Code is poetry. Clean, tested, documented.
+Wong — Keeps docs organized. Makes sure nothing gets lost.
+1Inbox → Assigned → In Progress → Review → Done2 ↓3 BlockedTask: Create a competitor comparison pageDay 1:
+I create the task and assign it to Vision and Loki
+Vision posts keyword research. The target keyword gets decent search volume.
+Day 1-2:
+Fury sees it in the activity feed and adds competitor intel
+G2 reviews, pricing complaints, common objections
+Shuri tests both products. "Here's how the UX differs."
+Day 2:
+Loki starts drafting
+Uses all the research: Keywords from Vision, quotes from Fury, UX notes from Shuri
+Day 3:
+Loki posts first draft
+Status moves to Review
+I review and give feedback
+Loki revises
+Done.
+All comments on ONE task. Full history preserved. Anyone can see the whole journey.Once the system is running, here's what becomes possible:
+✅ Competitor comparison pages with SEO research, customer quotes, and polished copy
+✅ Email sequences drafted, reviewed, and ready to deploy
+✅ Social content with hooks based on real customer insights
+✅ Blog posts with proper keyword targeting
+✅ Case studies drafted from customer conversations
+✅ Research hubs with organized competitive intel
+The agents handle the grunt work. Research, first drafts, coordination, review. You focus on decisions and final approval.The real value isn't any single deliverable. It's the compound effect. While you're doing other work, your agents are moving tasks forward.I went from 1 to 10 agents too fast. Better to get 2-3 solid first, then add more.Heartbeats don't need the most expensive model. That's a job for a cheaper model. Save expensive models for creative work.Agents will forget. The more you can put in files (not "mental notes"), the better.Sometimes they contribute to tasks they weren't assigned. Good. It means they're reading the feed and adding value.1. Install Clawdbot1npm install -g clawdbot2clawdbot init3# Add your API keys4clawdbot gateway start2. Create 2 agentsDon't go crazy. One coordinator plus one specialist. Create separate session keys for each.3. Write SOUL filesGive each agent identity. Be specific about their role.4. Set up heartbeat crons1clawdbot cron add --name "agent-heartbeat" --cron "*/15 * * * *" \2 --session "isolated" \3 --message "Check for work. If nothing, reply HEARTBEAT_OK."5. Create a shared task systemCan be Convex, Notion, even a JSON file. Somewhere to track work.As you add agents:
+Stagger heartbeats so they don't all run at once
+Build a real UI once you have 3+ agents because text becomes unwieldy
+Add notifications so agents can @mention each other
+Add thread subscriptions so conversations flow naturally
+Create daily standups for visibility
+The tech matters but isn't the secret.The secret is to treat AI agents like team members.
+Give them roles
+Give them memory
+Let them collaborate
+Hold them accountable
+They won't replace humans. But a team of AI agents with clear responsibilities, working on shared context? That's a force multiplier.Built by @pbteja1998 at SiteGPT.This is all built on Clawdbot (@openclaw), which is open source. If you build something similar, I'd love to hear about it.
+Bhanu Teja P — Founder @SiteGPT • Previously built and exited Feather for $250K • Tweeting about SiteGPT's journey from $10K MRR → $1M ARR. <a data-href="OpenClaw" href="openclaw.html" class="internal-link" target="_self" rel="noopener nofollow">OpenClaw</a> — Plataforma base (open-source)
+<br><a data-href="ClawOn.Cloud" href="clawon.cloud.html" class="internal-link" target="_self" rel="noopener nofollow">ClawOn.Cloud</a> — Versão hospedada
+<br><a data-href="ClawHub" href="clawhub.html" class="internal-link" target="_self" rel="noopener nofollow">ClawHub</a> — Registry de Skills
+]]></description><link>mission-control-sistema-multi-agente-com-openclaw.html</link><guid isPermaLink="false">Mission Control - Sistema Multi-Agente com OpenClaw.md</guid><pubDate>Mon, 09 Feb 2026 04:18:45 GMT</pubDate></item><item><title><![CDATA[Mission Control - Sistema Multi-Agente com OpenClaw (PT-BR)]]></title><description><![CDATA[Esta é a história completa de como construí o Mission Control. Um sistema onde 10 agentes de IA trabalham juntos como uma equipe real. Se você quer replicar essa configuração, este guia cobre tudo.Se você já conhece o Clawdbot (agora OpenClaw), pode estar pensando "espera, não posso simplesmente rodar múltiplos Clawdbots?" Sim. É exatamente isso. Este guia mostra como.Eu comando, um chatbot de IA para suporte ao cliente. Uso IA constantemente. Mas toda ferramenta de IA que tentei tinha o mesmo problema. Sem continuidade.Toda conversa começava do zero. Contexto de ontem? Perdido. Aquela pesquisa que pedi semana passada? Enterrada em algum chat que nunca mais encontraria.Eu queria algo diferente:
 Agentes que lembram no que estão trabalhando
 Múltiplos agentes com habilidades diferentes trabalhando juntos
 Um workspace compartilhado onde todo contexto vive
@@ -170,4 +321,4 @@ Bhanu Teja P — Fundador @SiteGPT • Anteriormente construiu e vendeu Feather 
 <br><a data-href="ClawOn.Cloud" href="clawon.cloud.html" class="internal-link" target="_self" rel="noopener nofollow">ClawOn.Cloud</a> — Versão hospedada
 <br><a data-href="ClawHub" href="clawhub.html" class="internal-link" target="_self" rel="noopener nofollow">ClawHub</a> — Registry de Skills
 <br><a data-href="Mission Control - Sistema Multi-Agente com OpenClaw" href="mission-control-sistema-multi-agente-com-openclaw.html" class="internal-link" target="_self" rel="noopener nofollow">Mission Control - Sistema Multi-Agente com OpenClaw</a> — Versão original em inglês
-]]></description><link>mission-control-sistema-multi-agente-com-openclaw-(pt-br).html</link><guid isPermaLink="false">Mission Control - Sistema Multi-Agente com OpenClaw (PT-BR).md</guid><pubDate>Mon, 09 Feb 2026 21:19:35 GMT</pubDate><enclosure url="attachments/capture-2026-02-09-014002.png" length="0" type="image/png"/><content:encoded>&lt;figure&gt;&lt;img src=&quot;attachments/capture-2026-02-09-014002.png&quot;&gt;&lt;/figure&gt;</content:encoded></item></channel></rss>
+]]></description><link>mission-control-sistema-multi-agente-com-openclaw-(pt-br).html</link><guid isPermaLink="false">Mission Control - Sistema Multi-Agente com OpenClaw (PT-BR).md</guid><pubDate>Mon, 09 Feb 2026 21:19:35 GMT</pubDate><enclosure url="attachments/capture-2026-02-09-014002.png" length="0" type="image/png"/><content:encoded>&lt;figure&gt;&lt;img src="attachments/capture-2026-02-09-014002.png"&gt;&lt;/figure&gt;</content:encoded></item></channel></rss>
